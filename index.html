@@ -637,9 +637,9 @@ nav{position:fixed;top:0;right:0;left:0;inset:0 0 auto;z-index:60;display:block;
 const VIDEOS={showreel:'media/optimized/clips/showreel-1080p.mp4',c1:'media/optimized/marquee/Cruz0044k-720.mp4',c2:'media/optimized/marquee/elmijinlara-720.mp4',c3:'media/optimized/marquee/girlkisser13-720.mp4',c4:'media/optimized/marquee/hs6027284e-720.mp4',c5:'media/optimized/marquee/ishowspeedofficial_fanpage-720.mp4',c6:'media/optimized/marquee/mahdihs1010-720.mp4',c7:'media/optimized/marquee/mariana_beijinhonoombro-720.mp4',c8:'media/optimized/marquee/paybackmotion-720.mp4',c9:'media/optimized/marquee/r2i3p-720.mp4',c10:'media/optimized/marquee/sellina_noami-720.mp4',long:'media/optimized/campaigns/16-9-big-video.mp4',clip1:'assets/The%20one%20long%20Video/short%20video%201.mp4',clip2:'assets/The%20one%20long%20Video/short%20video%202.mp4',clip3:'assets/The%20one%20long%20Video/short%20video%203.mp4',clip4:'assets/The%20one%20long%20Video/short%20video%204.mp4',dashboard:''};
 const VIDEO_POSTERS={showreel:'media/posters/clips/showreel-1080.webp',c1:'media/posters/clips/Cruz0044k.webp',c2:'media/posters/clips/elmijinlara.webp',c3:'media/posters/clips/girlkisser13.webp',c4:'media/posters/clips/hs6027284e.webp',c5:'media/posters/clips/ishowspeedofficial_fanpage.webp',c6:'media/posters/clips/mahdihs1010.webp',c7:'media/posters/clips/mariana_beijinhonoombro.webp',c8:'media/posters/clips/paybackmotion.webp',c9:'media/posters/clips/r2i3p.webp',c10:'media/posters/clips/sellina_noami.webp',long:'media/posters/campaigns/16-9-big-video.webp',clip1:'media/posters/campaigns/short-video-1.webp',clip2:'media/posters/campaigns/short-video-2.webp',clip3:'media/posters/campaigns/short-video-3.webp',clip4:'media/posters/campaigns/short-video-4.webp'};
 const connection=navigator.connection||navigator.mozConnection||navigator.webkitConnection;
-const dataSaver=!!(connection&&(connection.saveData||/2g|3g/.test(connection.effectiveType||'')));
+const dataSaver=!!(connection&&connection.saveData===true);
 const reducedMotion=matchMedia('(prefers-reduced-motion: reduce)').matches;
-const allowAutoPlay=!dataSaver&&!reducedMotion;
+const allowAutoPlay=true;
 const DASHBOARD_SHOTS=['assets/Verification%20bots/21321312312.avif','assets/Verification%20bots/321321321.avif','assets/Verification%20bots/carvana-dashboard%20%281%29.avif','assets/Verification%20bots/carvana-dashboard.avif'];
 function initDashboardSequence(slot){
   const points=Array.from({length:10},(_,i)=>{const a=(-84+i*36)*Math.PI/180,R=i%2?42:80;
@@ -655,12 +655,14 @@ function initDashboardSequence(slot){
     setTimeout(()=>{frames[current].classList.remove('active');current=next;frames[current].classList.add('active')},620);
     setTimeout(()=>slot.classList.remove('is-transitioning'),1320);
   };
-  if(reducedMotion||dataSaver||!('IntersectionObserver' in window))return;
-  const observer=new IntersectionObserver(entries=>entries.forEach(entry=>{
-    if(entry.isIntersecting&&!timer)timer=setInterval(nextFrame,5200);
-    else if(!entry.isIntersecting&&timer){clearInterval(timer);timer=0}
-  }),{threshold:.2});
-  observer.observe(slot);
+  const runSeq=()=>{if(!timer)timer=setInterval(nextFrame,4200)};
+  const stopSeq=()=>{if(timer){clearInterval(timer);timer=0}};
+  if('IntersectionObserver' in window){
+    const observer=new IntersectionObserver(entries=>entries.forEach(entry=>{
+      if(entry.isIntersecting)runSeq();else stopSeq();
+    }),{threshold:.05});
+    observer.observe(slot);
+  }else{runSeq()}
 }
 function initSite(){
   document.querySelectorAll('.slot').forEach(s=>{
@@ -1011,11 +1013,16 @@ document.addEventListener('pointerdown',e=>{const b=e.target.closest('.btn,.tab'
 if('IntersectionObserver' in window){
  const vio=new IntersectionObserver(es=>es.forEach(e=>{const v=e.target;v.dataset.vis=e.isIntersecting?'1':'';
   if(!e.isIntersecting){v.pause();return}
-  if(!v.src&&v.dataset.src&&allowAutoPlay){v.src=v.dataset.src;v.load()}
-  const play=()=>{if(allowAutoPlay&&v.dataset.vis==='1'&&!v.closest('.marq:hover'))v.play().catch(()=>v.closest('.slot')?.classList.add('needs-play'))};
-  if(v.readyState>=2)play();else v.addEventListener('canplay',play,{once:true})}),{threshold:.1,rootMargin:'0px'});
+  if(!v.src&&v.dataset.src){v.src=v.dataset.src;v.muted=true;v.playsInline=true;v.load()}
+  const play=()=>{
+    if(v.dataset.vis==='1'&&!v.closest('.marq:hover')){
+      v.muted=true;v.playsInline=true;
+      v.play().catch(()=>v.closest('.slot')?.classList.add('needs-play'))
+    }
+  };
+  if(v.readyState>=2)play();else v.addEventListener('canplay',play,{once:true})}),{threshold:.05,rootMargin:'120px'});
  $$('video[data-src]').forEach(v=>vio.observe(v));
-}else $$('video[data-src]').forEach(v=>{v.dataset.vis='1';if(allowAutoPlay){v.src=v.dataset.src;v.load();v.play().catch(()=>v.closest('.slot')?.classList.add('needs-play'))}});
+}else $$('video[data-src]').forEach(v=>{v.dataset.vis='1';if(!v.src&&v.dataset.src){v.src=v.dataset.src;v.muted=true;v.playsInline=true;v.load()}v.play().catch(()=>v.closest('.slot')?.classList.add('needs-play'))});
 
 /* Clip row: pause on hover or with a persistent keyboard/touch control. */
 $$('.marq').forEach(m=>{const tr=$('.track',m),button=m.parentElement.querySelector('.marq-toggle');if(!tr||!button)return;tr.style.animation='none';
